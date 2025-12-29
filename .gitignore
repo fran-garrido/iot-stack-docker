@@ -1,0 +1,8 @@
+# Datos de las bases de datos y logs (se generan al arrancar)
+mosquitto/data/
+mosquitto/log/
+grafana/data/
+influxdb/
+
+# Archivos de entorno con contraseñas/tokens sensibles
+.env
