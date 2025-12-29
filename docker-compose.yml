@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"  # MQTT sin encriptación (para producción, considera 8883 con TLS)      
+      - "1883:1883"
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
@@ -22,44 +20,51 @@ services:
       - "8086:8086"
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
-      - DOCKER_INFLUXDB_INIT_USERNAME=admin  # Cambia por un usuario seguro
-      - DOCKER_INFLUXDB_INIT_PASSWORD=admin  # Cambia por una contraseña fuerte
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=vdc_IoT2026
       - DOCKER_INFLUXDB_INIT_ORG=vdc
       - DOCKER_INFLUXDB_INIT_BUCKET=iot_data
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN} # Token para autenticación
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
     volumes:
       - ./influxdb/data:/var/lib/influxdb2
       - ./influxdb/config:/etc/influxdb2
     networks:
       - iot-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   telegraf:
     image: telegraf:latest
     container_name: telegraf
     restart: unless-stopped
     depends_on:
-      - influxdb
-      - mosquitto
+      influxdb:
+        condition: service_healthy
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     environment:
-      - INFLUX_TOKEN=mytoken  # Debe coincidir con el de InfluxDB
+      - INFLUX_TOKEN=${INFLUXDB_TOKEN}  # Ahora lee del .env como los demÃ¡s
     networks:
       - iot-net
 
   grafana:
     image: grafana/grafana:latest
+    user: "${UID}:${GID}"
     container_name: grafana
     restart: unless-stopped
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
     ports:
       - "3000:3000"
     volumes:
       - ./grafana/data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin  # Cambia por una contraseña fuerte
+      - GF_SECURITY_ADMIN_PASSWORD=vdc_IoT2026
       - GF_PROVISIONING_INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
     networks:
       - iot-net

@@ -10,5 +10,5 @@ datasources:
       organization: vdc
       defaultBucket: iot_data
     secureJsonData:
-      token: ${GF_PROVISIONING_INFLUXDB_TOKEN}   # ¡¡Mismo que en .env!!
+      token: ${GF_PROVISIONING_INFLUXDB_TOKEN}   # Â¡Â¡Mismo que en .env!!
     isDefault: true
