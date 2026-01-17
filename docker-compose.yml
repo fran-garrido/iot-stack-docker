@@ -6,10 +6,10 @@ services:
     restart: unless-stopped
     ports:
       - "1883:1883"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
+    volumes:      
+      - /opt/iot-stack/mosquitto/config:/mosquitto/config
+      - /opt/iot-stack/mosquitto/data:/mosquitto/data
+      - /opt/iot-stack/mosquitto/log:/mosquitto/log
     networks:
       - iot-net
 
@@ -28,8 +28,8 @@ services:
       - DOCKER_INFLUXDB_INIT_BUCKET=iot_data
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
     volumes:
-      - ./influxdb/data:/var/lib/influxdb2
-      - ./influxdb/config:/etc/influxdb2
+      - /opt/iot-stack/influxdb/data:/var/lib/influxdb2
+      - /opt/iot-stack/influxdb/config:/etc/influxdb2
     networks:
       - iot-net
     healthcheck:
@@ -46,10 +46,10 @@ services:
     depends_on:
       influxdb:
         condition: service_healthy
-    volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    volumes:      
+      - /opt/iot-stack/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     environment:
-      - INFLUX_TOKEN=${INFLUXDB_TOKEN}  # Ahora lee del .env como los demás
+      - INFLUX_TOKEN=${INFLUXDB_TOKEN}
     networks:
       - iot-net
 
@@ -64,8 +64,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana/data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - /opt/iot-stack/grafana/data:/var/lib/grafana
+      - /opt/iot-stack/grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=vdc_IoT2026
       - GF_PROVISIONING_INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
