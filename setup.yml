@@ -176,12 +176,16 @@
         timeout: 60 
       register: stack_deployment
 
-- name: 18. Verificar contenedores activos
-      shell: "docker ps --format '{% raw %}{{.Names}}: {{.Status}}{% endraw %}'"
+    - name: 18. Verificar contenedores activos
+      shell: "docker ps --format '{{ '{{' }}.Names{{ '}}' }}: {{ '{{' }}.Status{{ '}}' }}'"
       register: docker_status
+      changed_when: false
 
-    - name: Resumen del Sistema
+    - name: 19. Resumen del Sistema
       debug:
         msg: 
-          - "INSTALACIÓN COMPLETADA"
+          - "INSTALACIÓN COMPLETADA CON ÉXITO"
+          - "--------------------------------"
           - "{{ docker_status.stdout_lines }}"
+          - "--------------------------------"
+          - "Portainer: https://{{ ansible_host | default('localhost') }}:9443"
