@@ -14,7 +14,8 @@ chmod +x bootstrap.sh && \
 
 
 
-🔐 Credenciales de AccesoUna vez finalizada la instalación, puedes acceder a los servicios con las siguientes credenciales:
+## 🔐 Credenciales de Acceso
+Una vez finalizada la instalación, puedes acceder a los servicios con las siguientes credenciales:
 Servicio,URL,Usuario,Contraseña
 Portainer (Docker),https://IP:9443,admin,vdc_IoT2026!
 Cockpit (Sistema),http://IP:9090,tu_usuario_linux,tu_pass_linux
