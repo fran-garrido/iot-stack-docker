@@ -11,7 +11,7 @@ git clone [https://github.com/fran-garrido/iot-stack-docker.git](https://github.
 cd iot-stack-docker && \
 chmod +x bootstrap.sh && \
 ./bootstrap.sh
-
+```
 
 
 ## 🔐 Credenciales de Acceso
