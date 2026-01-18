@@ -1,5 +1,5 @@
 ---
-- name: Despliegue Profesional IoT con Control Total en Portainer
+- name: Despliegue Portable IoT (Ansible + Portainer)
   hosts: localhost
   vars:
     repo_url: "https://github.com/fran-garrido/iot-stack-docker.git"
@@ -10,23 +10,19 @@
     portainer_password: "vdc_IoT2026!"
 
   tasks:
-    - name: 1. Instalar dependencias del sistema
+    - name: 1. Instalar dependencias base
       apt:
         update_cache: yes
         name: [git, curl, python3-pip, python3-docker, cockpit, openssl]
 
-    - name: 2. Activar Cockpit
-      systemd:
-        name: cockpit.socket
-        state: started
-        enabled: yes
+    - name: 2. Eliminar instalaciones previas de Mosquitto (Limpieza)
+      shell: |
+        sudo systemctl stop mosquitto || true
+        sudo apt-get purge --auto-remove -y mosquitto mosquitto-clients || true
+        sudo rm -rf /etc/mosquitto /var/lib/mosquitto /var/log/mosquitto
+      ignore_errors: yes
 
-    - name: 3. Instalar Docker
-      shell: curl -fsSL https://get.docker.com | sh
-      args:
-        creates: /usr/bin/docker
-
-    - name: 4. Crear directorio base
+    - name: 3. Asegurar directorio de trabajo
       file:
         path: "{{ base_path }}"
         state: directory
@@ -34,62 +30,41 @@
         group: docker
         mode: '0775'
 
-    - name: 5. Clonar repositorio
-      git:
-        repo: "{{ repo_url }}"
+    - name: 4. Sincronizar archivos del repositorio a /opt/iot-stack
+      copy:
+        src: "./"
         dest: "{{ base_path }}"
-        force: yes
-
-    - name: 6. Crear estructura de subcarpetas de datos
-      file:
-        path: "{{ base_path }}/{{ item }}"
-        state: directory
         owner: "{{ user_name }}"
         group: docker
         mode: '0775'
-      with_items:
-        - mosquitto/config
-        - mosquitto/data
-        - mosquitto/log
-        - influxdb/data
-        - influxdb/config
-        - grafana/data
-        - telegraf
 
-    - name: 7. Generar Token de InfluxDB
+    - name: 5. Generar Token único de InfluxDB
       shell: "openssl rand -hex 32"
       register: generated_token
       args:
         creates: "{{ influx_token_file }}"
 
-    - name: 8. Crear archivo .env
+    - name: 6. Crear archivo .env local
       copy:
         dest: "{{ influx_token_file }}"
         content: |
-          INFLUXDB_TOKEN={{ generated_token.stdout | default('already_exists') }}
+          INFLUXDB_TOKEN={{ generated_token.stdout | default('TOKEN_EXISTENTE') }}
           UID={{ ansible_user_uid }}
           GID={{ ansible_user_gid }}
         force: no
 
-    - name: 9. Limpiar contenedores previos (Evitar conflictos)
-      docker_container:
-        name: "{{ item }}"
-        state: absent
-      with_items: [mosquitto, influxdb, telegraf, grafana]
-
-    - name: 10. Desplegar Contenedor de Portainer
+    - name: 7. Desplegar Portainer (Puerto 9443)
       docker_container:
         name: portainer
         image: portainer/portainer-ce:latest
         state: started
         restart_policy: always
-        published_ports:
-          - "9443:9443"
+        published_ports: ["9443:9443"]
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
           - portainer_data:/data
 
-    - name: 11. Esperar e Inicializar Administrador de Portainer (vdc)
+    - name: 8. Inicializar usuario vdc en Portainer
       uri:
         url: https://localhost:9443/api/users/admin/init
         method: POST
@@ -104,41 +79,25 @@
       retries: 15
       delay: 5
 
-    - name: 12. Obtener Token de la API de Portainer
+    - name: 9. Obtener Token y Endpoint ID
       uri:
         url: https://localhost:9443/api/auth
         method: POST
+        body: { "username": "{{ portainer_user }}", "password": "{{ portainer_password }}" }
         body_format: json
-        body:
-          username: "{{ portainer_user }}"
-          password: "{{ portainer_password }}"
         validate_certs: no
       register: portainer_auth
 
-    - name: 13. Obtener el ID del entorno (Endpoint)
+    - name: 10. Desplegar Stack desde GitHub (Control Total)
       uri:
-        url: https://localhost:9443/api/endpoints
-        method: GET
-        headers:
-          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
-        validate_certs: no
-      register: portainer_endpoints
-      until: portainer_endpoints.json | length > 0
-      retries: 10
-      delay: 5
-
-    - name: 14. Desplegar Stack en Portainer (Control Total)
-      uri:
-        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId={{ portainer_endpoints.json[0].Id }}"
+        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId=1"
         method: POST
-        headers:
-          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
+        headers: { "Authorization": "Bearer {{ portainer_auth.json.jwt }}" }
         body_format: json
         body:
-          name: "iot-infrastructure"
+          name: "iot-stack"
           repositoryURL: "{{ repo_url }}"
           composeFormat: "compose-v2"
-          repositoryAuthentication: false
           ComposeFilePathInRepository: "docker-compose.yml"
         validate_certs: no
         status_code: [200, 409]
