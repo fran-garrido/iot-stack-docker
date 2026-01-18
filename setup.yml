@@ -141,3 +141,34 @@
     - name: Debug - Endpoints disponibles
       debug:
         var: portainer_endpoints.json
+
+    - name: 16. Leer el contenido del docker-compose.yml local
+      slurp:
+        src: "{{ base_path }}/docker-compose.yml"
+      register: compose_content
+
+    - name: 17. Desplegar Stack en Portainer usando el archivo local
+      uri:
+        url: "https://localhost:9443/api/stacks/create/standalone/string?endpointId={{ portainer_endpoints.json[0].Id }}"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
+        body_format: json
+        body:
+          name: "iot-stack-local"
+          stackFileContent: "{{ compose_content.content | b64decode }}"
+          env:
+            - name: INFLUXDB_TOKEN
+              value: "{{ generated_token.stdout }}"
+            - name: UID
+              value: "{{ ansible_user_uid }}"
+            - name: GID
+              value: "{{ ansible_user_gid }}"
+        validate_certs: no
+        status_code: [200, 409]
+      register: stack_deployment
+
+    - name: 18. Resultado final
+      debug:
+        msg: "Stack desplegado desde archivo local con éxito."
+
