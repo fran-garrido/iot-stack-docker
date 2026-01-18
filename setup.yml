@@ -1,94 +1,57 @@
 ---
-- name: Despliegue Portable IoT (Ansible + Portainer)
+- name: Despliegue Portable IoT - Versión Aula (todo dentro del proyecto)
   hosts: localhost
   vars:
     repo_url: "https://github.com/fran-garrido/iot-stack-docker.git"
-    base_path: "/opt/iot-stack"
-    user_name: "{{ ansible_user_id }}"
-    influx_token_file: "{{ base_path }}/.env"    
     portainer_user: "admin"
     portainer_password: "vdc_IoT2026!"
 
   tasks:
-    - name: 1. Instalar dependencias base
+    - name: 1. Instalar dependencias mínimas
       apt:
         update_cache: yes
-        name: [git, curl, python3-pip, python3-docker, cockpit, openssl]
+        name: [git, curl, python3-pip, python3-docker, openssl]
+        state: present
 
-    - name: 2. Instalar Docker Engine (Script Oficial)
+    - name: 2. Instalar Docker (script oficial)
       shell: curl -fsSL https://get.docker.com | sh
       args:
         creates: /usr/bin/docker
 
-    - name: 3. Asegurar que Docker esté iniciado y habilitado
+    - name: 3. Asegurar Docker iniciado y habilitado
       systemd:
         name: docker
         state: started
         enabled: yes
 
-    - name: 4. Garantizar que el grupo docker existe
+    - name: 4. Asegurar grupo docker
       group:
         name: docker
         state: present
 
-    - name: 5. Añadir usuario al grupo docker
+    - name: 5. Añadir usuario actual al grupo docker
       user:
-        name: "{{ user_name }}"
+        name: "{{ ansible_user_id }}"
         groups: docker
         append: yes
 
-    - name: 6. Asegurar directorio de trabajo
-      file:
-        path: "{{ base_path }}"
-        state: directory
-        owner: "{{ user_name }}"
-        group: docker
-        mode: '0775'
-
-    - name: 7. Sincronizar archivos del repositorio a /opt/iot-stack
-      copy:
-        src: "./"
-        dest: "{{ base_path }}"
-        owner: "{{ user_name }}"
-        group: docker
-        mode: '0775'
-
-    - name: 7.1 Crear subcarpetas de servicios (Evita que Docker las cree como root)
-      file:
-        path: "{{ base_path }}/{{ item }}"
-        state: directory
-        owner: "{{ user_name }}"
-        group: docker
-        mode: '0775'
-      loop:
-        - influxdb
-        - grafana
-        - telegraf
-        - nodered
-        - mosquitto
-        - mosquitto/config
-        - mosquitto/data
-        - mosquitto/log
-
-    - name: 8. Generar Token único de InfluxDB
+    - name: 6. Generar token InfluxDB si no existe .env
       shell: "openssl rand -hex 32"
       register: generated_token
       args:
-        creates: "{{ influx_token_file }}"
+        creates: "{{ playbook_dir }}/.env"
 
-    - name: 9. Crear archivo .env local
+    - name: 7. Crear .env si no existe
       copy:
-        dest: "{{ influx_token_file }}"
+        dest: "{{ playbook_dir }}/.env"
         content: |
-          INFLUXDB_TOKEN={{ generated_token.stdout | default('TOKEN_EXISTENTE') }}
+          INFLUXDB_TOKEN={{ generated_token.stdout }}
           UID={{ ansible_user_uid }}
           GID={{ ansible_user_gid }}
-        owner: "{{ user_name }}"
-        group: docker
         mode: '0664'
         force: no
 
-    - name: 10. Desplegar Portainer (Puerto 9443)
+    - name: 8. Desplegar Portainer (HTTPS 9443)
       docker_container:
         name: portainer
         image: portainer/portainer-ce:latest
@@ -99,7 +62,7 @@
           - /var/run/docker.sock:/var/run/docker.sock
           - portainer_data:/data
 
-    - name: 11. Inicializar usuario admin en Portainer
+    - name: 9. Inicializar usuario admin en Portainer
       uri:
         url: https://localhost:9443/api/users/admin/init
         method: POST
@@ -114,7 +77,7 @@
       retries: 15
       delay: 5
 
-    - name: 12. Obtener Token de la API de Portainer
+    - name: 10. Obtener token API Portainer
       uri:
         url: https://localhost:9443/api/auth
         method: POST
@@ -125,7 +88,7 @@
         validate_certs: no
       register: portainer_auth
 
-    - name: 13. Crear endpoint local si no existe (form-multipart correcto)
+    - name: 11. Crear endpoint local si no existe
       uri:
         url: "https://localhost:9443/api/endpoints"
         method: POST
@@ -133,80 +96,54 @@
           Authorization: "Bearer {{ portainer_auth.json.jwt }}"
         body_format: form-multipart
         body:
-          Name: "local-docker"                  # Nombre sin espacios ni caracteres raros, prueba también "Local" o "primary"
-          EndpointCreationType: "1"             # 1 = entorno Docker local
-          # URL: "unix:///var/run/docker.sock"  # ← OPCIONAL, en la mayoría de versiones recientes NO lo pongas para local
+          Name: "local"
+          EndpointCreationType: "1"
         validate_certs: no
-        status_code: [200, 409]                 # 409 = ya existe → lo ignoramos
-      register: create_endpoint
-      changed_when: create_endpoint.status == 200
-      ignore_errors: yes   # Quita esto después de probar, solo para debug inicial
+        status_code: [200, 409]
+      ignore_errors: yes
 
-    - name: 14. Pequeña espera para que Portainer registre el endpoint
+    - name: 12. Pequeña espera
       pause:
         seconds: 8
 
-    - name: 15. Obtener lista de endpoints (ahora debería haber al menos 1)
-      uri:
-        url: "https://localhost:9443/api/endpoints"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
-        validate_certs: no
-      register: portainer_endpoints
-      until: portainer_endpoints.json | length > 0 and portainer_endpoints.json[0].Id is defined
-      retries: 12
-      delay: 5
-
-    - name: 16. Leer el contenido del docker-compose.yml local
+    - name: 13. Leer docker-compose.yml
       slurp:
         src: "{{ playbook_dir }}/docker-compose.yml"
       register: compose_content
 
-    - name: 16.5 Pre-descargar imágenes (Para ver el progreso)
+    - name: 14. Pre-descargar imágenes (opcional - mejora UX)
       shell: "docker pull {{ item }}"
       loop:
-        - "eclipse-mosquitto:latest"
-        - "influxdb:2.7"
-        - "telegraf:latest"
-        - "grafana/grafana:latest"
-        - "nodered/node-red:latest"
-      timeout: 300
-      register: pull_result
-      changed_when: "'Downloaded newer image' in pull_result.stdout"
+        - eclipse-mosquitto:2.0
+        - influxdb:2.7
+        - telegraf:1.32
+        - grafana/grafana:11.3.0
+        - nodered/node-red:latest
+      ignore_errors: yes
 
-    - name: 17. Desplegar Stack en Portainer usando el archivo local
+    - name: 15. Crear stack en Portainer
       uri:
-        url: "https://localhost:9443/api/stacks/create/standalone/string?endpointId={{ portainer_endpoints.json[0].Id }}"
+        url: "https://localhost:9443/api/stacks/create/standalone/string?endpointId={{ portainer_endpoints.json[0].Id | default('1') }}"
         method: POST
         headers:
           Authorization: "Bearer {{ portainer_auth.json.jwt }}"
         body_format: json
         body:
-          name: "iot-infrastructure"
+          name: "iot-aula"
           stackFileContent: "{{ compose_content.content | b64decode }}"
           env:
             - name: "INFLUXDB_TOKEN"
-              value: "{{ generated_token.stdout | string }}"
+              value: "{{ lookup('file', playbook_dir + '/.env') | regex_search('INFLUXDB_TOKEN=(.+)', '\\1') | first }}"
             - name: "UID"
-              value: "{{ ansible_user_uid | string }}"
+              value: "{{ ansible_user_uid }}"
             - name: "GID"
-              value: "{{ ansible_user_gid | string }}"
+              value: "{{ ansible_user_gid }}"
         validate_certs: no
         status_code: [200, 409]
-        timeout: 60 
-      register: stack_deployment
+      register: stack_result
 
-    - name: 18. Verificar contenedores activos
-      shell: "docker ps --format '{{ '{{' }}.Names{{ '}}' }}: {{ '{{' }}.Status{{ '}}' }}'"
-      register: docker_status
-      changed_when: false
-
-    - name: 19. Resumen del Sistema
+    - name: 16. Resumen final
       debug:
         msg: 
-          - "INSTALACIÓN COMPLETADA CON ÉXITO"
-          - "--------------------------------"
-          - "{{ docker_status.stdout_lines }}"
-          - "--------------------------------"
-          - "Portainer: https://{{ ansible_host | default('localhost') }}:9443"
+          - "¡INSTALACIÓN FINALIZADA!"
+          - "Portainer → https://localhost:9443"
