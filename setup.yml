@@ -105,24 +105,28 @@
         validate_certs: no
       register: portainer_auth
 
-    - name: 13. Crear endpoint local si no existe
+    - name: 13. Crear endpoint local si no existe (form-multipart correcto)
       uri:
         url: "https://localhost:9443/api/endpoints"
         method: POST
         headers:
           Authorization: "Bearer {{ portainer_auth.json.jwt }}"
-        body_format: json
+        body_format: form-multipart
         body:
-          name: "local"
-          endpointType: 1   
-          URL: "unix:///var/run/docker.sock"
-          publicURL: "https://localhost:9443"   
+          Name: "local-docker"                  # Nombre sin espacios ni caracteres raros, prueba también "Local" o "primary"
+          EndpointCreationType: "1"             # 1 = entorno Docker local
+          # URL: "unix:///var/run/docker.sock"  # ← OPCIONAL, en la mayoría de versiones recientes NO lo pongas para local
         validate_certs: no
-        status_code: [200, 409]
-      register: create_local_endpoint
-      changed_when: create_local_endpoint.status == 200
+        status_code: [200, 409]                 # 409 = ya existe → lo ignoramos
+      register: create_endpoint
+      changed_when: create_endpoint.status == 200
+      ignore_errors: yes   # Quita esto después de probar, solo para debug inicial
 
-    - name: 14. Obtener el ID del entorno local
+    - name: 14. Pequeña espera para que Portainer registre el endpoint
+      pause:
+        seconds: 8
+
+    - name: 15. Obtener lista de endpoints (ahora debería haber al menos 1)
       uri:
         url: "https://localhost:9443/api/endpoints"
         method: GET
@@ -131,9 +135,9 @@
         validate_certs: no
       register: portainer_endpoints
       until: portainer_endpoints.json | length > 0 and portainer_endpoints.json[0].Id is defined
-      retries: 10
-      delay: 4
+      retries: 12
+      delay: 5
 
-    - name: Debug - Mostrar endpoints encontrados
+    - name: Debug - Endpoints disponibles
       debug:
         var: portainer_endpoints.json
