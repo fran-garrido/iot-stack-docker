@@ -71,7 +71,21 @@ services:
       - GF_PROVISIONING_INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
     networks:
       - iot-net
+  nodered:
+    image: nodered/node-red:latest
+    user: "${UID}:${GID}"
+    container_name: nodered
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./nodered/data:/data
+    networks:
+      - iot-net
 
 networks:
   iot-net:
     driver: bridge
+
