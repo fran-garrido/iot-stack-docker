@@ -140,9 +140,19 @@
 
     - name: 16. Leer el contenido del docker-compose.yml local
       slurp:
-        # Usamos playbook_dir para leerlo de la carpeta actual del repo
         src: "{{ playbook_dir }}/docker-compose.yml"
       register: compose_content
+
+    - name: 16.5 Pre-descargar imágenes (Para ver el progreso)
+      shell: "docker pull {{ item }}"
+      loop:
+        - "eclipse-mosquitto:latest"
+        - "influxdb:2.7"
+        - "telegraf:latest"
+        - "grafana/grafana:latest"
+      timeout: 300
+      register: pull_result
+      changed_when: "'Downloaded newer image' in pull_result.stdout"
 
     - name: 17. Desplegar Stack en Portainer usando el archivo local
       uri:
@@ -163,6 +173,15 @@
               value: "{{ ansible_user_gid | string }}"
         validate_certs: no
         status_code: [200, 409]
-        # Aumentamos el tiempo de espera a 5 minutos para la descarga de imágenes
-        timeout: 300 
+        timeout: 60 
       register: stack_deployment
+
+- name: 18. Verificar contenedores activos
+      shell: "docker ps --format '{% raw %}{{.Names}}: {{.Status}}{% endraw %}'"
+      register: docker_status
+
+    - name: Resumen del Sistema
+      debug:
+        msg: 
+          - "INSTALACIÓN COMPLETADA"
+          - "{{ docker_status.stdout_lines }}"
