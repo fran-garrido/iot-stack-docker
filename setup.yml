@@ -111,7 +111,7 @@
         src: "{{ playbook_dir }}/docker-compose.yml"
       register: compose_content
 
-    - name: 14. Pre-descargar imágenes (opcional - mejora UX)
+    - name: 14. Pre-descargar imágenes
       shell: "docker pull {{ item }}"
       loop:
         - eclipse-mosquitto:2.0
@@ -133,11 +133,11 @@
           stackFileContent: "{{ compose_content.content | b64decode }}"
           env:
             - name: "INFLUXDB_TOKEN"
-              value: "{{ lookup('file', playbook_dir + '/.env') | regex_search('INFLUXDB_TOKEN=(.+)', '\\1') | first }}"
+              value: "{{ lookup('file', playbook_dir + '/.env') | regex_search('INFLUXDB_TOKEN=(.+)', '\\1') | first | string }}"
             - name: "UID"
-              value: "{{ ansible_user_uid }}"
+              value: "{{ ansible_user_uid | string }}"    
             - name: "GID"
-              value: "{{ ansible_user_gid }}"
+              value: "{{ ansible_user_gid | string }}"    
         validate_certs: no
         status_code: [200, 409]
       register: stack_result
