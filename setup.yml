@@ -5,8 +5,8 @@
     repo_url: "https://github.com/fran-garrido/iot-stack-docker.git"
     base_path: "/opt/iot-stack"
     user_name: "{{ ansible_user_id }}"
-    influx_token_file: "{{ base_path }}/.env"
-    portainer_user: "vdc"
+    influx_token_file: "{{ base_path }}/.env"    
+    portainer_user: "admin"
     portainer_password: "vdc_IoT2026!"
 
   tasks:
@@ -64,7 +64,7 @@
           - /var/run/docker.sock:/var/run/docker.sock
           - portainer_data:/data
 
-    - name: 8. Inicializar usuario vdc en Portainer
+    - name: 8. Inicializar usuario admin en Portainer
       uri:
         url: https://localhost:9443/api/users/admin/init
         method: POST
