@@ -4,6 +4,10 @@ services:
     user: "${UID}:${GID}"
     container_name: mosquitto
     restart: unless-stopped
+    cap_drop:
+      - CHOWN
+      - SETUID
+      - SETGID
     ports:
       - "1883:1883"
     volumes:
@@ -88,4 +92,5 @@ services:
 networks:
   iot-net:
     driver: bridge
+
 
