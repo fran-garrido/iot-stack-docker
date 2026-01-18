@@ -105,30 +105,35 @@
         validate_certs: no
       register: portainer_auth
 
-    - name: 13. Obtener el ID del entorno (Endpoint)
+    - name: 13. Crear endpoint local si no existe
       uri:
-        url: https://localhost:9443/api/endpoints
-        method: GET
-        headers:
-          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
-        validate_certs: no
-      register: portainer_endpoints
-      until: portainer_endpoints.json | length > 0
-      retries: 12
-      delay: 5
-
-    - name: 14. Desplegar Stack en Portainer (Control Total)
-      uri:
-        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId={{ portainer_endpoints.json[0].Id }}"
+        url: "https://localhost:9443/api/endpoints"
         method: POST
         headers:
           Authorization: "Bearer {{ portainer_auth.json.jwt }}"
         body_format: json
         body:
-          name: "iot-infrastructure"
-          repositoryURL: "{{ repo_url }}"
-          composeFormat: "compose-v2"
-          repositoryAuthentication: false
-          ComposeFilePathInRepository: "docker-compose.yml"
+          name: "local"
+          endpointType: 1   
+          URL: "unix:///var/run/docker.sock"
+          publicURL: "https://localhost:9443"   
         validate_certs: no
         status_code: [200, 409]
+      register: create_local_endpoint
+      changed_when: create_local_endpoint.status == 200
+
+    - name: 14. Obtener el ID del entorno local
+      uri:
+        url: "https://localhost:9443/api/endpoints"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
+        validate_certs: no
+      register: portainer_endpoints
+      until: portainer_endpoints.json | length > 0 and portainer_endpoints.json[0].Id is defined
+      retries: 10
+      delay: 4
+
+    - name: Debug - Mostrar endpoints encontrados
+      debug:
+        var: portainer_endpoints.json
