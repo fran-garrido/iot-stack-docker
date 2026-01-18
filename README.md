@@ -10,7 +10,7 @@ Este repositorio automatiza la instalación de un ecosistema IoT profesional med
 Ejecuta este comando en tu terminal de Ubuntu Server:
 
 ```bash
-git clone [https://github.com/fran-garrido/iot-stack-docker.git](https://github.com/fran-garrido/iot-stack-docker.git) && \
+git clone https://github.com/fran-garrido/iot-stack-docker.git && \
 cd iot-stack-docker && \
 chmod +x bootstrap.sh && \
 ./bootstrap.sh
