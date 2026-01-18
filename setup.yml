@@ -53,6 +53,22 @@
         group: docker
         mode: '0775'
 
+    - name: 7.1 Crear subcarpetas de servicios y asegurar permisos WinSCP
+      file:
+        path: "{{ base_path }}/{{ item }}"
+        state: directory
+        owner: "{{ user_name }}"
+        group: docker
+        mode: '0775'
+      loop:
+        - influxdb
+        - grafana
+        - telegraf
+        - mosquitto
+        - mosquitto/config
+        - mosquitto/data
+        - mosquitto/log
+
     - name: 8. Generar Token único de InfluxDB
       shell: "openssl rand -hex 32"
       register: generated_token
