@@ -150,6 +150,7 @@
         - "influxdb:2.7"
         - "telegraf:latest"
         - "grafana/grafana:latest"
+        - "nodered/node-red:latest
       timeout: 300
       register: pull_result
       changed_when: "'Downloaded newer image' in pull_result.stdout"
