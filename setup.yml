@@ -94,7 +94,7 @@
       retries: 15
       delay: 5
 
-    - name: 12. Obtener Token y Endpoint ID
+    - name: 12. Obtener Token y lista de entornos (Endpoints)
       uri:
         url: https://localhost:9443/api/auth
         method: POST
@@ -103,9 +103,21 @@
         validate_certs: no
       register: portainer_auth
 
+    - name: 12.5 Consultar ID del entorno dinámicamente
+      uri:
+        url: https://localhost:9443/api/endpoints
+        method: GET
+        headers:
+          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
+        validate_certs: no
+      register: portainer_endpoints
+      until: portainer_endpoints.json | length > 0
+      retries: 10
+      delay: 5
+
     - name: 13. Desplegar Stack desde GitHub (Control Total)
       uri:
-        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId=1"
+        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId={{ portainer_endpoints.json[0].Id }}"
         method: POST
         headers: { "Authorization": "Bearer {{ portainer_auth.json.jwt }}" }
         body_format: json
