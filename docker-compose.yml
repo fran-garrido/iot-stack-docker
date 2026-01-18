@@ -3,13 +3,13 @@ services:
     image: eclipse-mosquitto:2.0
     container_name: mosquitto
     restart: unless-stopped
-    user: "${UID}:${GID}"
+    #user: "${UID}:${GID}"
     ports:
       - "1883:1883"
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./data/mosquitto:/mosquitto/data
-      - ./data/mosquitto-log:/mosquitto/log
+      - ./mosquitto:/mosquitto/config     
+      - ./mosquitto/data:/mosquitto/data  
+      - ./mosquitto/log:/mosquitto/log 
     networks:
       - iot-net
 
@@ -46,7 +46,7 @@ services:
       influxdb:
         condition: service_healthy
     volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./telegraf:/etc/telegraf:ro
     environment:
       - INFLUX_TOKEN=${INFLUXDB_TOKEN}
     networks:
