@@ -1,23 +1,61 @@
-# IoT Stack Docker - Despliegue Automatizado
+# 🚀 IoT Stack Docker - Despliegue Automatizado
 
-Este repositorio contiene un stack profesional de IoT (**Mosquitto, InfluxDB, Telegraf y Grafana**) con despliegue automatizado mediante **Ansible** y gestión visual a través de **Portainer**.
+![Ansible](https://img.shields.io/badge/Ansible-000000?style=for-the-badge&logo=ansible&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-## 🚀 Instalación Rápida (Ubuntu Server)
+Este repositorio automatiza la instalación de un ecosistema IoT profesional mediante Ansible y Docker.
 
-Para desplegar todo el sistema en un servidor Ubuntu virgen, ejecuta el siguiente comando:
+## ⚡ Instalación Rápida
 
-```bash
-git clone [https://github.com/fran-garrido/iot-stack-docker.git](https://github.com/fran-garrido/iot-stack-docker.git) && \
-cd iot-stack-docker && \
-chmod +x bootstrap.sh && \
-./bootstrap.sh
-```
+Ejecuta este comando en tu terminal de Ubuntu Server:
 
+git clone https://github.com/fran-garrido/iot-stack-docker.git && cd iot-stack-docker && chmod +x bootstrap.sh && ./bootstrap.sh
+
+---
 
 ## 🔐 Credenciales de Acceso
-Una vez finalizada la instalación, puedes acceder a los servicios con las siguientes credenciales:
-Servicio,URL,Usuario,Contraseña
-Portainer (Docker),https://IP:9443,admin,vdc_IoT2026!
-Cockpit (Sistema),http://IP:9090,tu_usuario_linux,tu_pass_linux
-Grafana (Dashboards),http://IP:3000,admin,vdc_IoT2026
-InfluxDB (DB),http://IP:8086,admin,vdc_IoT2026
+
+### 🐳 Portainer (Gestión de Contenedores)
+- URL: https://IP-SERVIDOR:9443
+- Usuario: admin
+- Contraseña: vdc_IoT2026!
+
+### 📊 Grafana (Dashboards)
+- URL: http://IP-SERVIDOR:3000
+- Usuario: admin
+- Contraseña: vdc_IoT2026
+
+### 🗄️ InfluxDB (Base de Datos)
+- URL: http://IP-SERVIDOR:8086
+- Usuario: admin
+- Contraseña: vdc_IoT2026
+
+### 💻 Cockpit (Administración Linux)
+- URL: http://IP-SERVIDOR:9090
+- Usuario: (Tu usuario de Linux)
+- Contraseña: (Tu contraseña de Linux)
+
+---
+
+## 🛠️ Servicios Desplegados
+- Mosquitto: Broker MQTT (Puerto 1883)
+- InfluxDB 2.7: Almacenamiento de datos
+- Telegraf: Colector de métricas
+- Grafana: Visualización
+- Portainer CE: Panel de control web
+
+---
+
+## 📁 Estructura de Datos
+Los datos persistentes se guardan en: /opt/iot-stack/
+- /opt/iot-stack/influxdb
+- /opt/iot-stack/mosquitto
+- /opt/iot-stack/grafana
+- /opt/iot-stack/telegraf
+
+---
+
+## 🔄 Cómo Actualizar
+Para aplicar cambios realizados en el repositorio:
+1. Desde Portainer: Ve a Stacks > iot-stack y pulsa "Pull and redeploy".
+2. Desde Terminal: Ejecuta nuevamente ./bootstrap.sh
