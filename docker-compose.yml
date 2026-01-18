@@ -1,23 +1,23 @@
 services:
   mosquitto:
-    image: eclipse-mosquitto:latest
-    user: "${UID}:${GID}"
+    image: eclipse-mosquitto:2.0
     container_name: mosquitto
     restart: unless-stopped
+    user: "${UID}:${GID}"
     ports:
       - "1883:1883"
-    volumes:      
-      - /opt/iot-stack/mosquitto/config:/mosquitto/config
-      - /opt/iot-stack/mosquitto/data:/mosquitto/data
-      - /opt/iot-stack/mosquitto/log:/mosquitto/log
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./data/mosquitto:/mosquitto/data
+      - ./data/mosquitto-log:/mosquitto/log
     networks:
       - iot-net
 
   influxdb:
     image: influxdb:2.7
-    user: "${UID}:${GID}"
     container_name: influxdb
     restart: unless-stopped
+    user: "${UID}:${GID}"
     ports:
       - "8086:8086"
     environment:
@@ -28,8 +28,7 @@ services:
       - DOCKER_INFLUXDB_INIT_BUCKET=iot_data
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
     volumes:
-      - /opt/iot-stack/influxdb/data:/var/lib/influxdb2
-      - /opt/iot-stack/influxdb/config:/etc/influxdb2
+      - ./data/influxdb:/var/lib/influxdb2
     networks:
       - iot-net
     healthcheck:
@@ -39,56 +38,53 @@ services:
       retries: 5
 
   telegraf:
-    image: telegraf:latest
-    user: "${UID}:${GID}"
+    image: telegraf:1.32
     container_name: telegraf
     restart: unless-stopped
+    user: "${UID}:${GID}"
     depends_on:
       influxdb:
         condition: service_healthy
-    volumes:      
-      - /opt/iot-stack/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     environment:
       - INFLUX_TOKEN=${INFLUXDB_TOKEN}
     networks:
       - iot-net
 
   grafana:
-    image: grafana/grafana:latest
-    user: "${UID}:${GID}"
+    image: grafana/grafana:11.3.0
     container_name: grafana
     restart: unless-stopped
+    user: "${UID}:${GID}"
     depends_on:
       influxdb:
         condition: service_healthy
     ports:
       - "3000:3000"
     volumes:
-      - /opt/iot-stack/grafana/data:/var/lib/grafana
-      - /opt/iot-stack/grafana/provisioning:/etc/grafana/provisioning
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=vdc_IoT2026
-      - GF_PROVISIONING_INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
     networks:
       - iot-net
 
   nodered:
     image: nodered/node-red:latest
-    user: "${UID}:${GID}"
     container_name: nodered
     restart: unless-stopped
+    user: "${UID}:${GID}"
     depends_on:
       - influxdb
       - mosquitto
     ports:
       - "1880:1880"
     volumes:
-      - /opt/iot-stack/nodered:/data
-    networks:     
-      - iot-net    
+      - ./data/nodered:/data
+    networks:
+      - iot-net
 
 networks:
   iot-net:
     driver: bridge
-
-
