@@ -8,8 +8,13 @@ if ! command -v ansible &> /dev/null; then
     sudo apt update && sudo apt install -y ansible
 fi
 
-# Crear carpetas de datos (por si acaso)
-mkdir -p data/influxdb data/grafana data/mosquitto data/nodered data/telegraf
+
+mkdir -p mosquitto/data mosquitto/log \
+         influxdb/data influxdb/config \
+         telegraf grafana/data grafana/provisioning \
+         nodered  # si lo usas después
+
+sudo chmod -R 777 mosquitto influxdb telegraf grafana nodered
 
 # Ejecutar el Playbook localmente
 sudo ansible-playbook setup.yml -c local -i "localhost," --become
