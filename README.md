@@ -40,6 +40,9 @@ chmod +x bootstrap.sh && \
 - Usuario: (Tu usuario de Linux)
 - Contraseña: (Tu contraseña de Linux)
 
+### 🟢 Node-RED 
+- URL: http://IP:1880
+- 
 ---
 
 ## 🛠️ Servicios Desplegados
@@ -48,7 +51,7 @@ chmod +x bootstrap.sh && \
 - Telegraf: Colector de métricas
 - Grafana: Visualización
 - Portainer CE: Panel de control web
-
+- Node-RED: Motor de flujos para lógica IoT
 ---
 
 ## 📁 Estructura de Datos
@@ -57,6 +60,7 @@ Los datos persistentes se guardan en: /opt/iot-stack/
 - /opt/iot-stack/mosquitto
 - /opt/iot-stack/grafana
 - /opt/iot-stack/telegraf
+- /opt/iot-stack/nodered
 
 ---
 
