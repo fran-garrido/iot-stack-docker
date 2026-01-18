@@ -75,19 +75,18 @@ services:
   nodered:
     image: nodered/node-red:latest
     container_name: nodered
-    restart: always
+    restart: unless-stopped
+    depends_on:
+      - influxdb
+      - mosquitto
     ports:
       - "1880:1880"
     volumes:
       - /opt/iot-stack/nodered:/data
-    environment:
-      - TZ=Europe/Madrid 
-    depends_on:
-      - influxdb
-      - mosquitto
     networks:     
       - iot-net    
 
 networks:
   iot-net:
     driver: bridge
+
