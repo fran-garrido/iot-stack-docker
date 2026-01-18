@@ -3,7 +3,7 @@
 ![Ansible](https://img.shields.io/badge/Ansible-000000?style=for-the-badge&logo=ansible&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-Este repositorio automatiza la instalación de un ecosistema IoT profesional mediante Ansible y Docker.
+Este repositorio automatiza la instalación de un ecosistema IoT para pruebas de laboratorio mediante Ansible y Docker.
 
 ## ⚡ Instalación Rápida
 
