@@ -74,6 +74,7 @@ services:
 
   nodered:
     image: nodered/node-red:latest
+    user: "${UID}:${GID}"
     container_name: nodered
     restart: unless-stopped
     depends_on:
@@ -89,4 +90,5 @@ services:
 networks:
   iot-net:
     driver: bridge
+
 
