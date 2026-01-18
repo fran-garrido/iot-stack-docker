@@ -154,7 +154,6 @@
         body:
           name: "iot-infrastructure"
           stackFileContent: "{{ compose_content.content | b64decode }}"
-          # Forzamos que los valores sean strings usando | string para evitar el error de Portainer
           env:
             - name: "INFLUXDB_TOKEN"
               value: "{{ generated_token.stdout | string }}"
@@ -164,5 +163,6 @@
               value: "{{ ansible_user_gid | string }}"
         validate_certs: no
         status_code: [200, 409]
+        # Aumentamos el tiempo de espera a 5 minutos para la descarga de imágenes
+        timeout: 300 
       register: stack_deployment
-
