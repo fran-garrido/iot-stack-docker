@@ -15,18 +15,29 @@
         update_cache: yes
         name: [git, curl, python3-pip, python3-docker, cockpit, openssl]
 
-    - name: 2. Garantizar que el grupo docker existe
+    - name: 2. Instalar Docker Engine (Script Oficial)
+      shell: curl -fsSL https://get.docker.com | sh
+      args:
+        creates: /usr/bin/docker
+
+    - name: 3. Asegurar que Docker esté iniciado y habilitado
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: 4. Garantizar que el grupo docker existe
       group:
         name: docker
         state: present
 
-    - name: 3. Añadir usuario al grupo docker
+    - name: 5. Añadir usuario al grupo docker
       user:
         name: "{{ user_name }}"
         groups: docker
         append: yes
 
-    - name: 4. Asegurar directorio de trabajo
+    - name: 6. Asegurar directorio de trabajo
       file:
         path: "{{ base_path }}"
         state: directory
@@ -34,7 +45,7 @@
         group: docker
         mode: '0775'
 
-    - name: 5. Sincronizar archivos del repositorio a /opt/iot-stack
+    - name: 7. Sincronizar archivos del repositorio a /opt/iot-stack
       copy:
         src: "./"
         dest: "{{ base_path }}"
@@ -42,13 +53,13 @@
         group: docker
         mode: '0775'
 
-    - name: 6. Generar Token único de InfluxDB
+    - name: 8. Generar Token único de InfluxDB
       shell: "openssl rand -hex 32"
       register: generated_token
       args:
         creates: "{{ influx_token_file }}"
 
-    - name: 7. Crear archivo .env local
+    - name: 9. Crear archivo .env local
       copy:
         dest: "{{ influx_token_file }}"
         content: |
@@ -57,7 +68,7 @@
           GID={{ ansible_user_gid }}
         force: no
 
-    - name: 8. Desplegar Portainer (Puerto 9443)
+    - name: 10. Desplegar Portainer (Puerto 9443)
       docker_container:
         name: portainer
         image: portainer/portainer-ce:latest
@@ -68,7 +79,7 @@
           - /var/run/docker.sock:/var/run/docker.sock
           - portainer_data:/data
 
-    - name: 9. Inicializar usuario admin en Portainer
+    - name: 11. Inicializar usuario admin en Portainer
       uri:
         url: https://localhost:9443/api/users/admin/init
         method: POST
@@ -83,7 +94,7 @@
       retries: 15
       delay: 5
 
-    - name: 10. Obtener Token y Endpoint ID
+    - name: 12. Obtener Token y Endpoint ID
       uri:
         url: https://localhost:9443/api/auth
         method: POST
@@ -92,7 +103,7 @@
         validate_certs: no
       register: portainer_auth
 
-    - name: 11. Desplegar Stack desde GitHub (Control Total)
+    - name: 13. Desplegar Stack desde GitHub (Control Total)
       uri:
         url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId=1"
         method: POST
