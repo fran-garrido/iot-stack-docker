@@ -94,7 +94,7 @@
       retries: 15
       delay: 5
 
-    - name: 12. Obtener Token y lista de entornos (Endpoints)
+    - name: 12. Obtener Token de acceso
       uri:
         url: https://localhost:9443/api/auth
         method: POST
@@ -103,7 +103,7 @@
         validate_certs: no
       register: portainer_auth
 
-    - name: 12.5 Consultar ID del entorno dinámicamente
+    - name: 12.5 Consultar entornos existentes
       uri:
         url: https://localhost:9443/api/endpoints
         method: GET
@@ -111,13 +111,37 @@
           Authorization: "Bearer {{ portainer_auth.json.jwt }}"
         validate_certs: no
       register: portainer_endpoints
-      until: portainer_endpoints.json | length > 0
-      retries: 10
-      delay: 5
 
-    - name: 13. Desplegar Stack desde GitHub (Control Total)
+    - name: 12.6 Forzar creación de entorno local si no existe
       uri:
-        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId={{ portainer_endpoints.json[0].Id }}"
+        url: https://localhost:9443/api/endpoints
+        method: POST
+        headers:
+          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
+        body_format: json
+        body:
+          Name: "local"
+          URL: "unix:///var/run/docker.sock"
+          EndpointCreationType: 1
+        validate_certs: no
+        status_code: [200, 409, 500] # 409 si ya existe, 200 si lo crea
+      when: portainer_endpoints.json | length == 0
+
+    - name: 12.7 Re-consultar ID del entorno final
+      uri:
+        url: https://localhost:9443/api/endpoints
+        method: GET
+        headers:
+          Authorization: "Bearer {{ portainer_auth.json.jwt }}"
+        validate_certs: no
+      register: final_endpoints
+      until: final_endpoints.json | length > 0
+      retries: 5
+      delay: 2
+
+    - name: 13. Desplegar Stack desde GitHub
+      uri:
+        url: "https://localhost:9443/api/stacks/create/standalone/repository?endpointId={{ final_endpoints.json[0].Id }}"
         method: POST
         headers: { "Authorization": "Bearer {{ portainer_auth.json.jwt }}" }
         body_format: json
