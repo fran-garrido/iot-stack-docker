@@ -85,8 +85,9 @@ services:
     depends_on:
       - influxdb
       - mosquitto
+    networks:     
+      - iot-net    
 
 networks:
   iot-net:
     driver: bridge
-
